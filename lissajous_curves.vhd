@@ -11,7 +11,9 @@ use ieee.std_logic_signed.all;
 use ieee.numeric_std.all;
 
 entity lissajous_curves is
-  generic( precision : integer := 8) ;
+  generic( precision : integer := 8;
+           pi : integer := 314;
+           dec_offset : integer := 100 );
   port(
     x_out, y_out  : out std_logic_vector((precision - 1) downto 0) := X"00" ; -- inteiros de 16 bits
     --var_in : in std_logic_vector((precision - 1) downto 0);
@@ -27,26 +29,26 @@ architecture arq of lissajous_curves is
 
   -- tipos --------------------------
   --constant precision : integer := 32;
-  --subtype int is signed(31 downto 0);
+  subtype int is integer range 131071 downto 0; -- 131071 = 2 ^ 17 - 1
 
   -- Constantes -------------------------
-  constant pi : integer := 314; -- pi with decimal offset
-  constant dec_offset : integer := 100;
 
   -- Variáveis ---------------------------
-  shared variable x_ampl  : integer := 127;
-  shared variable y_ampl  : integer := 127;
+  shared signal x_ampl  : int  := 127;
+  shared signal y_ampl  : int := 127;
 
   -- parâmetros da figura
-  shared variable alpha   : integer := 2*dec_offset;
-  shared variable beta    : integer := 4*dec_offset;
-  shared variable delta   : integer := 0;
   shared variable t       : integer range 1000 downto 0 := 0;
+
+  shared variable alpha   : int := 2 * dec_offset;
+  shared variable beta    : int := 4 * dec_offset;
+  shared variable delta   : int := 1 * dec_offset;
 
 	shared variable x_tmp   : std_logic_vector((precision - 1) downto 0);
 	shared variable y_tmp   : std_logic_vector((precision - 1) downto 0);
 
--- Funções
+  shared variable a,b : int := 0;
+-- Funções ---------------------------------------------------------------
 
   -- Multiplicação, levando em conta o offset decimal
   pure function mult (x: integer; y : integer) return integer is
@@ -250,44 +252,50 @@ begin
     when  154   => return  99 ;
     when  155   => return  99 ;
     when  156   => return  99 ;
-		when others   => return   0 ;
+		when others => return 0 ;
   end case;
 end function;
 
-  -- Seno, utilizando simetrias da função
-  function sin(x : integer ) return integer is
-  begin
-    case div(x, pi/2) is -- como o seno é simétrico, alteramos a chamada de
-                         -- função de acordo com o quadrante em que x cai
-      when 0 =>
-        return sin_0_pi2(x);
-      when 1 =>
-        return sin_0_pi2(x-pi);
-      when 2 =>
-        return -1*sin_0_pi2(x);
-      when others =>
-        return -1*sin_0_pi2(x-pi); --depois checar se nao ocorre underflow aqui
-    end case;
-  end function;
+  -- -- Seno, utilizando simetrias da função
+  -- function sin(x : integer ) return integer is
+  -- begin
+  --   case div(x, pi/2) is -- como o seno é simétrico, alteramos a chamada de
+  --                        -- função de acordo com o quadrante em que x cai
+  --     when 0 =>
+  --       return sin_0_pi2(x);
+  --     when 1 =>
+  --       return sin_0_pi2(pi-x);
+  --     when 2 =>
+  --       return -1*sin_0_pi2(x);
+  --     when others =>
+  --       return -1*sin_0_pi2(pi-x); --depois checar se nao ocorre underflow aqui
+  --   end case;
+  -- end function;
 
 begin
   increment_t: process(clk)
-    variable  a,b : integer;
   begin
     if rising_edge(clk) then
+
       t := (t + 1);
+      a := (t*alpha + delta) mod 628; -- sin(x) = sin(x + 2*pi)
+      b := (t*beta) mod 628;
 
-      a := x_ampl * sin(t*alpha + delta); -- computar o valor de x
-      a := x_ampl/2 + a/dec_offset;       -- ajustar o valor entre 0-255
-
-      b := y_ampl * sin(t*beta);
-      b := y_ampl/2 + b / dec_offset;
-
-      x_tmp := std_logic_vector(to_signed(a,precision));
-      y_tmp := std_logic_vector(to_signed(b ,precision));
+      if a < 156 then
+        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 + sin_0_pi2(a)))/dec_offset,precision));
+        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 + sin_0_pi2(b)))/dec_offset,precision));
+      elsif a > 156 and a < 314 then
+        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 + sin_0_pi2(314 - a)))/dec_offset,precision));
+        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 + sin_0_pi2(314 - b)))/dec_offset,precision));
+      elsif a > 314 and a < 470 then
+        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 - sin_0_pi2(a)))/dec_offset,precision));
+        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 - sin_0_pi2(b)))/dec_offset,precision));
+      else
+        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 - sin_0_pi2(314 - a)))/dec_offset,precision));
+        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 - sin_0_pi2(314 - b)))/dec_offset,precision));
+      end if;
+        x_out <= x_tmp;
+        y_out <= y_tmp;
     end if;
   end process;
-
-  x_out <= x_tmp;
-  y_out <= y_tmp;
 end arq;
