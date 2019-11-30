@@ -13,7 +13,10 @@ use ieee.numeric_std.all;
 entity lissajous_curves is
   generic( precision : integer := 8;
            pi : integer := 314;
-           dec_offset : integer := 100 );
+           dec_offset : integer := 100;
+           x_ampl  : integer  := 127;
+           y_ampl  : integer := 127
+			 );
   port(
     x_out, y_out  : out std_logic_vector((precision - 1) downto 0) := X"00" ; -- inteiros de 16 bits
     --var_in : in std_logic_vector((precision - 1) downto 0);
@@ -33,19 +36,17 @@ architecture arq of lissajous_curves is
 
   -- Constantes -------------------------
 
-  -- Variáveis ---------------------------
-  shared signal x_ampl  : int  := 127;
-  shared signal y_ampl  : int := 127;
+  -- Variáveis e sinais ---------------------------
 
   -- parâmetros da figura
   shared variable t       : integer range 1000 downto 0 := 0;
 
-  shared variable alpha   : int := 2 * dec_offset;
-  shared variable beta    : int := 4 * dec_offset;
-  shared variable delta   : int := 1 * dec_offset;
+  signal alpha   : int := 2 * dec_offset;
+	signal beta    : int := 4 * dec_offset;
+  signal delta   : int := 1 * dec_offset;
 
-	shared variable x_tmp   : std_logic_vector((precision - 1) downto 0);
-	shared variable y_tmp   : std_logic_vector((precision - 1) downto 0);
+	signal x_tmp   : std_logic_vector((precision - 1) downto 0);
+	signal y_tmp   : std_logic_vector((precision - 1) downto 0);
 
   shared variable a,b : int := 0;
 -- Funções ---------------------------------------------------------------
@@ -71,14 +72,12 @@ architecture arq of lissajous_curves is
 --   end function;
 
 --   pure function sin (x : int := "0") return int is
---     variable quadVAR_DUMP(slope);rant :  int := "00";
+--     variable quadrant :  int := "00";
 --     --variable angl : integer := angle mod 360;
 -- begin
 
 --   quadrant := div(x, pi/2);
---   case quadran--library ieee_proposed;
-
-t is
+--   case quadrant is
 --     when "00" =>
 --       return sin_0_pi2(x);
 --     when "01" =>
@@ -294,8 +293,33 @@ begin
         x_tmp <= std_logic_vector(to_signed((x_ampl * (100 - sin_0_pi2(314 - a)))/dec_offset,precision));
         y_tmp <= std_logic_vector(to_signed((y_ampl * (100 - sin_0_pi2(314 - b)))/dec_offset,precision));
       end if;
-        x_out <= x_tmp;
-        y_out <= y_tmp;
+      x_out <= x_tmp;
+      y_out <= y_tmp;
     end if;
+  end process;
+  update_param: process(clk)
+    variable count : integer range 25000001 downto 0;
+    variable updn : std_logic := '0';--integer range 2 downto 0:= 1;
+
+  begin
+    if count = 25000000 then
+      if updn = '0' then
+        alpha <= alpha - 2;
+        beta <= beta - 2;
+        delta <= delta - 2;
+      else
+        alpha <= alpha + 2;
+        beta <= beta + 2;
+        delta <= delta + 2;
+      end if;
+
+      if delta >= 600 then
+        updn := 0;
+      elsif delta <= 100 then
+        updn := 1;
+      end if;
+
+    end if;
+    count := count + 1;
   end process;
 end arq;
