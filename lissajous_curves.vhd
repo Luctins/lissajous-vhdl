@@ -312,13 +312,13 @@ begin
         beta <= beta + 2;
         delta <= delta + 2;
       end if;
-
+		
       if delta >= 600 then
         updn := '0';
       elsif delta <= 100 then
         updn := '1';
       end if;
-
+		count := 0;
     end if;
     count := count + 1;
   end process;
