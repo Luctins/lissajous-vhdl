@@ -314,9 +314,9 @@ begin
       end if;
 
       if delta >= 600 then
-        updn := 0;
+        updn := '0';
       elsif delta <= 100 then
-        updn := 1;
+        updn := '1';
       end if;
 
     end if;
