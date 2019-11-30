@@ -297,12 +297,12 @@ begin
       y_out <= y_tmp;
     end if;
   end process;
-  update_param: process(clk)
+  update_param: process(clk,alpha,beta,delta)
     variable count : integer range 25000001 downto 0;
     variable updn : std_logic := '0';--integer range 2 downto 0:= 1;
 
   begin
-    if count = 25000000 then
+    if rising_edge(clk) and count = 25000000 then
       if updn = '0' then
         alpha <= alpha - 2;
         beta <= beta - 2;
