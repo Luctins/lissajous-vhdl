@@ -285,20 +285,21 @@ begin
       b := mult(t,beta) mod 628;
 
       if a < 156 then
-        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 + sin_0_pi2(a)))/dec_offset,precision));
-        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 + sin_0_pi2(b)))/dec_offset,precision));
+        x_tmp <= (x_ampl * (100 + sin_0_pi2(a))/dec_offset;
+        y_tmp <= (y_ampl * (100 + sin_0_pi2(b))/dec_offset;
       elsif a > 156 and a < 314 then
-        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 + sin_0_pi2(314 - a)))/dec_offset,precision));
-        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 + sin_0_pi2(314 - b)))/dec_offset,precision));
+        x_tmp <= y_ampl * (100 + sin_0_pi2(314 - b))/dec_offset;
+        y_tmp <= y_ampl * (100 + sin_0_pi2(314 - b))/dec_offset;
       elsif a > 314 and a < 470 then
-        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 - sin_0_pi2(a)))/dec_offset,precision));
-        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 - sin_0_pi2(b)))/dec_offset,precision));
+        x_tmp <= x_ampl * (100 - sin_0_pi2(a))/dec_offset;
+        y_tmp <= y_ampl * (100 - sin_0_pi2(b))/dec_offset;
       else
-        x_tmp <= std_logic_vector(to_signed((x_ampl * (100 - sin_0_pi2(314 - a)))/dec_offset,precision));
-        y_tmp <= std_logic_vector(to_signed((y_ampl * (100 - sin_0_pi2(314 - b)))/dec_offset,precision));
+        x_tmp <= x_ampl * (100 - sin_0_pi2(314 - a))/dec_offset;
+        y_tmp <= y_ampl * (100 - sin_0_pi2(314 - b))/dec_offset;
       end if;
-      x_out <= x_tmp;
-      y_out <= y_tmp;
+		
+      x_out <= std_logic_vector(to_signed(x_tmp,precision));
+      y_out <= std_logic_vector(to_signed(y_tmp,precision));
     end if;
   end process;
   update_param: process(clk,alpha,beta,delta)
