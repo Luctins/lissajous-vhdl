@@ -11,12 +11,13 @@ use ieee.std_logic_signed.all;
 use ieee.numeric_std.all;
 
 entity lissajous_curves is
-  generic( precision : integer := 8;
-           pi : integer := 314;
-           dec_offset : integer := 100;
-           x_ampl  : integer  := 127;
-           y_ampl  : integer := 127
-			 );
+  generic( 
+			precision : integer := 8;
+         pi : integer := 314;
+         dec_offset : integer := 100;
+         x_ampl  : integer  := 127;
+         y_ampl  : integer := 127
+			);
   port(
     x_out, y_out  : out std_logic_vector((precision - 1) downto 0) := X"00" ; -- inteiros de 16 bits
     --var_in : in std_logic_vector((precision - 1) downto 0);
@@ -32,7 +33,7 @@ architecture arq of lissajous_curves is
 
   -- tipos --------------------------
   --constant precision : integer := 32;
-  subtype int is integer range 131071 downto 0; -- 131071 = 2 ^ 17 - 1
+  subtype int is integer range 131071 downto -131071; -- 131071 = 2 ^ 17 - 1
 
   -- Constantes -------------------------
 
@@ -45,9 +46,9 @@ architecture arq of lissajous_curves is
 	signal beta    : int := 6 * dec_offset;
   signal delta   : int := 0;
 
-	signal x_tmp   : std_logic_vector((precision - 1) downto 0);
-	signal y_tmp   : std_logic_vector((precision - 1) downto 0);
-
+	shared variable x_tmp  : int;
+	shared variable y_tmp   : int;
+	
   shared variable a,b : int := 0;
 -- Funções ---------------------------------------------------------------
 
@@ -91,7 +92,7 @@ architecture arq of lissajous_curves is
 
   -- Seno  - implementado por meio de uma tabela de valores, com precisão de
   -- 0.01 radiano
-  function sin_0_pi2 ( rad : integer ) return integer is
+  function sin_0_pi2 ( rad : int ) return int is
 begin
   case rad is
     when  0     => return  0 ;
@@ -255,6 +256,26 @@ begin
   end case;
 end function;
 
+function sin (x : int) return int is
+variable t : int;
+	begin
+		
+      if x < 157 then
+			return sin_0_pi2(x);
+			
+      elsif x > 157 and x < 314 then
+			return sin_0_pi2(157 - x);
+			
+      elsif x > 314 and x < 470 then
+			t := x mod 157;
+			return -1*sin_0_pi2(t);
+		  
+      else
+			t := x mod 157;
+			return -1*sin_0_pi2(137 - t);
+		end if;
+	end function;
+	
   -- -- Seno, utilizando simetrias da função
   -- function sin(x : integer ) return integer is
   -- begin
@@ -277,29 +298,24 @@ begin
     if rising_edge(clk) then
 
         t := (t + 1);
-	    if t = 999 then
+	    if t = 628 then
 		    t := 0;
         end if;
         
-      a := (mult(t,alpha + delta) mod 628; -- sin(x) = sin(x + 2*pi)
+      a := (mult(t,alpha) + delta) mod 628; -- sin(x) = sin(x + 2*pi)
       b := mult(t,beta) mod 628;
-
-      if a < 156 then
-        x_tmp <= (x_ampl * (100 + sin_0_pi2(a))/dec_offset;
-        y_tmp <= (y_ampl * (100 + sin_0_pi2(b))/dec_offset;
-      elsif a > 156 and a < 314 then
-        x_tmp <= y_ampl * (100 + sin_0_pi2(314 - b))/dec_offset;
-        y_tmp <= y_ampl * (100 + sin_0_pi2(314 - b))/dec_offset;
-      elsif a > 314 and a < 470 then
-        x_tmp <= x_ampl * (100 - sin_0_pi2(a))/dec_offset;
-        y_tmp <= y_ampl * (100 - sin_0_pi2(b))/dec_offset;
-      else
-        x_tmp <= x_ampl * (100 - sin_0_pi2(314 - a))/dec_offset;
-        y_tmp <= y_ampl * (100 - sin_0_pi2(314 - b))/dec_offset;
-      end if;
+			
+      x_tmp := x_ampl * (100 + sin(a));
+		x_tmp := x_tmp/dec_offset;
+		  
+      y_tmp := y_ampl * (100 + sin(b));
+		y_tmp := y_tmp/dec_offset;
+		  
+      
 		
       x_out <= std_logic_vector(to_signed(x_tmp,precision));
       y_out <= std_logic_vector(to_signed(y_tmp,precision));
+		
     end if;
   end process;
   update_param: process(clk,alpha,beta,delta)
@@ -307,8 +323,8 @@ begin
     variable updn : std_logic := '1';--integer range 2 downto 0:= 1;
 
   begin
-    if falling_edge(clk) then
-	    if count = 25000000 then
+	if falling_edge(clk) then
+		if count = 25000000 then
 			if updn = '0' then
 				delta <= delta - 1;
 			else
@@ -321,10 +337,12 @@ begin
 				updn := '1';
 			end if;
 		
+		
 			count := 0;
 		else
 			count := count + 1;			
 		end if;
-     end if;           
+		
+    end if;
   end process;
 end arq;
