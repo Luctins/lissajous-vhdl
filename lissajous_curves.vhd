@@ -306,20 +306,24 @@ begin
     variable updn : std_logic := '1';--integer range 2 downto 0:= 1;
 
   begin
-    if falling_edge(clk) and count = 25000000 then
-      if updn = '0' then
-        delta <= delta - 1;
-      else
-        delta <= delta + 1;
-      end if;
+    if falling_edge(clk) then
+	    if count = 25000000 then
+			if updn = '0' then
+				delta <= delta - 1;
+			else
+				delta <= delta + 1;
+			end if;
 		
-      if delta >= 628 then
-        updn := '0';
-      elsif delta <= 100 then
-        updn := '1';
-      end if;
-		count := 0;
-    end if;
-    count := count + 1;
+			if delta >= 628 then
+				updn := '0';
+			elsif delta <= 100 then
+				updn := '1';
+			end if;
+		
+			count := 0;
+		else
+			count := count + 1;			
+		end if;
+     end if;           
   end process;
 end arq;
