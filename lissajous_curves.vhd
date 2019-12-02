@@ -42,8 +42,8 @@ architecture arq of lissajous_curves is
   shared variable t       : integer range 1000 downto 0 := 0;
 
   signal alpha   : int := 2 * dec_offset;
-	signal beta    : int := 4 * dec_offset;
-  signal delta   : int := 1 * dec_offset;
+	signal beta    : int := 6 * dec_offset;
+  signal delta   : int := 0;
 
 	signal x_tmp   : std_logic_vector((precision - 1) downto 0);
 	signal y_tmp   : std_logic_vector((precision - 1) downto 0);
@@ -276,7 +276,11 @@ begin
   begin
     if rising_edge(clk) then
 
-      t := (t + 1);
+        t := (t + 1);
+	    if t = 999 then
+		    t = 0;
+        end if;
+        
       a := (t*alpha + delta) mod 628; -- sin(x) = sin(x + 2*pi)
       b := (t*beta) mod 628;
 
@@ -298,22 +302,18 @@ begin
     end if;
   end process;
   update_param: process(clk,alpha,beta,delta)
-    variable count : integer range 25000001 downto 0;
+    variable count : integer range 25000001 downto 0 := 0;
     variable updn : std_logic := '0';--integer range 2 downto 0:= 1;
 
   begin
-    if rising_edge(clk) and count = 25000000 then
+    if falling_edge(clk) and count = 25000000 then
       if updn = '0' then
-        alpha <= alpha - 2;
-        beta <= beta - 2;
-        delta <= delta - 2;
+        delta <= delta - 1;
       else
-        alpha <= alpha + 2;
-        beta <= beta + 2;
-        delta <= delta + 2;
+        delta <= delta + 1;
       end if;
 		
-      if delta >= 600 then
+      if delta >= 628 then
         updn := '0';
       elsif delta <= 100 then
         updn := '1';
