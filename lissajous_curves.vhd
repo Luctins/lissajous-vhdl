@@ -303,7 +303,7 @@ begin
   end process;
   update_param: process(clk,alpha,beta,delta)
     variable count : integer range 25000001 downto 0 := 0;
-    variable updn : std_logic := '0';--integer range 2 downto 0:= 1;
+    variable updn : std_logic := '1';--integer range 2 downto 0:= 1;
 
   begin
     if falling_edge(clk) and count = 25000000 then
