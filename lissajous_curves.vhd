@@ -278,7 +278,7 @@ begin
 
         t := (t + 1);
 	    if t = 999 then
-		    t = 0;
+		    t := 0;
         end if;
         
       a := (t*alpha + delta) mod 628; -- sin(x) = sin(x + 2*pi)
