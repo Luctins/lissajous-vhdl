@@ -281,8 +281,8 @@ begin
 		    t := 0;
         end if;
         
-      a := (t*alpha + delta) mod 628; -- sin(x) = sin(x + 2*pi)
-      b := (t*beta) mod 628;
+      a := (mult(t,alpha + delta) mod 628; -- sin(x) = sin(x + 2*pi)
+      b := mult(t,beta) mod 628;
 
       if a < 156 then
         x_tmp <= std_logic_vector(to_signed((x_ampl * (100 + sin_0_pi2(a)))/dec_offset,precision));
