@@ -253,23 +253,23 @@ architecture arq of lissajous_curves is
     end case;
   end function;
 
-  function sin (x : int) return int is
-    variable t : int;
+   pure function sin (x : int) return int is
+    variable d : int;
 	begin
-    t := x mod 157;
+    d := x mod 157;
 
     if x < 157 then
-			return sin_0_pi2(t);
+			return sin_0_pi2(d);
 
     elsif x > 157 and x < 314 then
-			return sin_0_pi2(157 - t);
-
+			return sin_0_pi2(157 - d);
+			
     elsif x > 314 and x < 470 then
-			t := x mod 157;
-			return -1*sin_0_pi2(t);
+			return -1*sin_0_pi2(d);
+			
     else
-			t := x mod 157;
-			return -1*sin_0_pi2(137 - t);
+			return -1*sin_0_pi2(137 - d);
+			
 		end if;
 
 	end function;
