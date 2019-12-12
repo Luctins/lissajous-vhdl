@@ -55,4 +55,20 @@ set_location_assignment PIN_N5 -to clk
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_location_assignment PIN_AA8 -to x_out[7]
+set_location_assignment PIN_W5 -to x_out[0]
+set_location_assignment PIN_AA14 -to x_out[1]
+set_location_assignment PIN_W12 -to x_out[2]
+set_location_assignment PIN_AB12 -to x_out[3]
+set_location_assignment PIN_AB11 -to x_out[4]
+set_location_assignment PIN_AB10 -to x_out[5]
+set_location_assignment PIN_AA9 -to x_out[6]
+set_location_assignment PIN_Y7 -to y_out[7]
+set_location_assignment PIN_Y8 -to y_out[6]
+set_location_assignment PIN_AA10 -to y_out[5]
+set_location_assignment PIN_W11 -to y_out[4]
+set_location_assignment PIN_Y11 -to y_out[3]
+set_location_assignment PIN_AB13 -to y_out[2]
+set_location_assignment PIN_W13 -to y_out[1]
+set_location_assignment PIN_AA15 -to y_out[0]
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
