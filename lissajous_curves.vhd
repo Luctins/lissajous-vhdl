@@ -12,19 +12,19 @@ use ieee.numeric_std.all;
 
 entity lissajous_curves is
   generic(
-    precision : integer := 8;
-    pi : integer := 314;
-    dec_offset : integer := 100;
-    x_ampl  : integer  := 127;
-    y_ampl  : integer := 127;
-    global_clock : integer := 5000000;
-    delta_update : integer := 40;
-    screen_update : integer := 500
+    dec_offset : integer := 100; -- offset decimal global para todos os valores
+                                 -- de ponto fixo
+    precision : integer := 8; -- numero de bits de precisao da saida
+    pi : integer := 314; -- pi com offset decimal
+    x_ampl  : integer  := (1 sll (precision - 1));-- (2^7), amplitude de x
+    y_ampl  : integer := (1 sll (precision - 1 )); -- (2^7), amplitude de y
+    global_clock : integer := 5000000; -- valor do clock global
+    delta_update : integer := 40; -- taxa de atualização delta 40 = 0.4/s
+    screen_update : integer := 100000 -- taxa de atualização da forma de onda
     );
   port(
-    x_out, y_out  : out std_logic_vector((precision - 1) downto 0) := X"00" ; -- inteiros de 16 bits
-    --var_in : in std_logic_vector((precision - 1) downto 0);
-    --next_bt : in std_logic;
+    x_out, y_out  : out std_logic_vector((precision - 1) downto 0) := X"00" ; -- inteiros
+                                                                              --com "precision" bits
     clk: in std_logic
     );
 end lissajous_curves;
@@ -35,15 +35,12 @@ end lissajous_curves;
 architecture arq of lissajous_curves is
 
   -- tipos --------------------------
-  --constant precision : integer := 32;
   subtype int is integer range 131071 downto -131071; -- 131071 = 2 ^ 17 - 1
-
-  -- Constantes -------------------------
 
   -- Variáveis e sinais ---------------------------
 
   -- parâmetros da figura
-  shared variable t       : integer range 1000 downto 0 := 0;
+  shared variable t       : integer range (2*pi+1) downto 0 := 0;
 
   signal alpha   : int := 2 * dec_offset;
 	signal beta    : int := 6 * dec_offset;
@@ -53,7 +50,8 @@ architecture arq of lissajous_curves is
 	shared variable y_tmp : int := 0;
 
   shared variable a,b : int := 0;
--- Funções ---------------------------------------------------------------
+
+  -- Funções -----------------------------------------
 
   -- Multiplicação, levando em conta o offset decimal
   pure function mult (x: integer; y : integer) return integer is
@@ -237,9 +235,12 @@ architecture arq of lissajous_curves is
     variable t : int;
     variable m : int;
 	begin
-		m := x mod (2*pi);
-		t := x mod (pi/2);
+		m := x mod (2*pi); -- x entre 0 e 2*pi
+		t := x mod (pi/2); -- x entre 0 e pi/2
 
+    -- Isto mapeia chamadas de função de
+    -- forma a utilizar as simetrias da
+    -- função seno e apenas implementar o 1o quadrante
     if m < pi/2 then
 			return sin_0_pi2(t);
 
@@ -255,46 +256,27 @@ architecture arq of lissajous_curves is
 		end if;
 	end function;
 
-  -- -- Seno, utilizando simetrias da função
-  -- function sin(x : integer ) return integer is
-  -- begin
-  --   case div(x, pi/2) is -- como o seno é simétrico, alteramos a chamada de
-  --                        -- função de acordo com o quadrante em que x cai
-  --     when 0 =>
-  --       return sin_0_pi2(x);
-  --     when 1 =>
-  --       return sin_0_pi2(pi-x);
-  --     when 2 =>
-  --       return -1*sin_0_pi2(x);
-  --     when others =>
-  --       return -1*sin_0_pi2(pi-x); --depois checar se nao ocorre underflow aqui
-  --   end case;
-  -- end function;
-
 begin
   increment_t: process(clk)
-    variable count : integer range 0 to screen_update;
+    variable count : integer range 0 to global_clock/screen_update; -- divide clock por screen_update
   begin
 
     if rising_edge(clk) then
       count := count + 1;
 
-      if count = screen_update then -- divide main clock by screen_update
+      if count = global_clock/screen_update then
 
         t := (t + 1);
+        t := t mod (2*pi); -- reduz t entre 0 e 2*pi
 
-        if t = 2*pi then
-          t := 0;
-        end if;
-
-        a := (mult(t,alpha) + delta); -- sin(x) = sin(x + 2*pi)
+        a := (mult(t,alpha) + delta);
         b := mult(t,beta);
 
-        x_tmp := x_ampl * (1*dec_offset + sin(a));
-        x_tmp := x_tmp/dec_offset;
+        x_tmp := x_ampl * (1*dec_offset + sin(a)); -- 1 + sin(t*alpha + delta)
+        x_tmp := x_tmp/dec_offset; -- remove offset decimal
 
-        y_tmp := y_ampl * (1*dec_offset + sin(b));
-        y_tmp := y_tmp/dec_offset;
+        y_tmp := y_ampl * (1*dec_offset + sin(b)); --1  + sin(t*beta)
+        y_tmp := y_tmp/dec_offset; -- remove offset decimal
 
         x_out <= std_logic_vector(to_signed(x_tmp,precision));
         y_out <= std_logic_vector(to_signed(y_tmp,precision));
@@ -308,26 +290,29 @@ begin
   end process;
 
   update_param: process(clk,alpha,beta,delta)
-    variable count : integer range global_clock/40  downto 0 := 0; -- como o clock é de 50 Mhz
-                                                                   -- e queremos uma taxa de
-                                                                   -- 0.2 /s contamos de 0 até
-                                                                   -- 2_500_000
+    -- como o clock é de 50 Mhz e queremos uma taxa igual a delta_update dividimos
+    -- o clock principal por delta update
+    variable count : integer range global_clock/delta_update  downto 0 := 0;
     variable updn : std_logic := '1'; -- contando pra cima ou pra baixo
 
   begin
     if falling_edge(clk) then
-      if count = global_clock/40 then
+      if count = global_clock/delta_update then
 
         if updn = '0' then
           delta <= delta - 1;
+
         else
           delta <= delta + 1;
+
         end if;
 
         if delta >= pi then
           updn := '0';
+
         elsif delta <= 0 then
           updn := '1';
+
         end if;
 
         count := 0;
